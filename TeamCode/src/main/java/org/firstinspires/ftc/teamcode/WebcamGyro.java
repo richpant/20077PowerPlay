@@ -234,8 +234,8 @@ public class WebcamGyro extends LinearOpMode {
                             //check label to see if camera sees bolt, this whole if statement added
                             if (recognition.getLabel().equals("1 Bolt")){
                                 isBoltDetected =true;
-                                turn = 100;
-                                forward = 100;
+                                turn = 90.0;
+                                forward = 20;
                                 telemetry.addData("Side Detected", "Bolt");
                             }else{
                                 isBoltDetected = false; //added
@@ -251,8 +251,8 @@ public class WebcamGyro extends LinearOpMode {
                             }
                             if (recognition.getLabel().equals("3 Panel")){
                                 isPanelDetected =true;
-                                turn = -100;
-                                forward = 100;
+                                turn = -90.0;
+                                forward = -20;
                                 telemetry.addData("Side Detected", "Panel");
                             }else{
                                 isPanelDetected = false; //added
@@ -262,10 +262,13 @@ public class WebcamGyro extends LinearOpMode {
                         telemetry.update();
                     }
                 }
-                driveStraight(driveSpeed,24,0.0);
-                //move(1000,1000,1000,1000);//move into zone 2
-               // move(turn,turn,-turn,-turn);//turn to zone 1 or 3 or no turn
-               // move(forward,forward,forward,forward);//move forward into the correct zone
+                driveStraight(driveSpeed,24,0.0);//drive forward into zone 2
+                turnToHeading(TURN_SPEED,turn);//turn to var added by seeing the 1,2,or 3
+                holdHeading(TURN_SPEED,turn,0.5);//hold the turn
+                driveStraight(driveSpeed,forward,turn);//drive, or not, into another zone
+                lift(200);//just to see if it works
+                claw.setPosition(0.8);
+                claw2.setPosition(0.2);//this should become a method for open and close
             }
         }
     }
@@ -475,6 +478,9 @@ public class WebcamGyro extends LinearOpMode {
         lift.setTargetPosition(height);
         lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         lift.setPower(0.5);
+
+
+        }
 
     }
 
