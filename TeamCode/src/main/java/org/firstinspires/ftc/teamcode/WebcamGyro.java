@@ -267,8 +267,8 @@ public class WebcamGyro extends LinearOpMode {
                 holdHeading(TURN_SPEED,turn,0.5);//hold the turn
                 driveStraight(driveSpeed,forward,turn);//drive, or not, into another zone
                 lift(200);//just to see if it works
-                claw.setPosition(0.8);
-                claw2.setPosition(0.2);//this should become a method for open and close
+                open();
+                closed();
             }
         }
     }
@@ -481,7 +481,14 @@ public class WebcamGyro extends LinearOpMode {
 
 
         }
-
+    public void open(){
+        claw.setPosition(0.8);
+        claw2.setPosition(0.2);
+    }
+    public void closed(){
+        claw.setPosition(0.2);
+        claw2.setPosition(0.8);
+    }
     }
 
-    }
+
