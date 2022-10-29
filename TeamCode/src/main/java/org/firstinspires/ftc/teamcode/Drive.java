@@ -23,12 +23,8 @@ public class Drive extends OpMode {
     private DcMotor rightFront; // 1
     private DcMotor rightRear;  // 3
     private DcMotor lift;   // 0
-   // private DcMotor armLift;  // 1
-   // private DcMotor arm;  // 2
-    private Servo claw;         // s0
-    private Servo claw2;         // s2
-    //private Servo stick;        // s1
-    private Servo pivot;
+    private Servo claw;         // s4
+    private Servo claw2;         // s5
     private DigitalChannel touch;
     //\\//\\//\\//\\//\\//\\//\\//\\//\\
     //private DcMotorEx lift;
@@ -36,21 +32,10 @@ public class Drive extends OpMode {
     //@Override
     public void runOpMode() {
         lift = hardwareMap.get(DcMotorEx.class, "lift");
-        //armLift = hardwareMap.get(DcMotorEx.class,"armLift");
-       // arm = hardwareMap.get(DcMotorEx.class,"arm");
-        //bucket = hardwareMap.get(Servo.class,"bucket");
-        //flipper = hardwareMap.get(CRServo.class, "flipper");
-        //arm.setDirection(DcMotorSimple.Direction.REVERSE);
-        // arm2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       // armLift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       // arm.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        //arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         telemetry.addData("Encoder value", lift.getCurrentPosition());
-        //telemetry.addData("Encoder value", armLift.getCurrentPosition());
-       // telemetry.addData("Encoder value", arm.getCurrentPosition());
-        //telemetry.addData("Encoder value", arm2.getCurrentPosition());
-        //telemetry.addData("servoPosiont", bucket.getPosition());
 
         telemetry.update();
 
@@ -64,29 +49,24 @@ public class Drive extends OpMode {
         rightFront = hardwareMap.get(DcMotor.class, "rightFront");
         rightRear = hardwareMap.get(DcMotor.class, "rightRear");
         lift = hardwareMap.get(DcMotor.class,"lift");
-        //armLift = hardwareMap.get(DcMotor.class,"armLift");
-        //arm = hardwareMap.get(DcMotor.class,"arm");
+
         claw = hardwareMap.get(Servo.class,"claw");
         claw2 = hardwareMap.get(Servo.class,"claw2");
-       // stick = hardwareMap.get(Servo.class,"stick");
+
         touch = hardwareMap.get(DigitalChannel.class,"touch");
         touch.setMode(DigitalChannel.Mode.INPUT);
         leftFront.setDirection(DcMotor.Direction.REVERSE);
-        //rightFront.setDirection(DcMotor.Direction.REVERSE);
         leftRear.setDirection(DcMotor.Direction.REVERSE);
-        //rightRear.setDirection(DcMotor.Direction.REVERSE);
-        //lift.setDirection(DcMotor.Direction.REVERSE);
-        //armLift.setDirection(DcMotor.Direction.REVERSE);
-        //arm.setDirection(DcMotor.Direction.REVERSE);
-        claw.setDirection(Servo.Direction.REVERSE);
-        //claw2.setDirection(Servo.Direction.REVERSE);
-        //stick.setDirection(Servo.Direction.REVERSE);
+
+
 
         telemetry.addData("Say", "Hello Driver");
-        telemetry.addData("encoder",leftFront.getCurrentPosition());
+
     }
     @Override
     public void loop() {
+
+        //MECHANUM DRIVE
         float lift_power = -gamepad2.left_stick_y;
         double y = -gamepad1.left_stick_y; // Remember, this is reversed!
         double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
@@ -105,9 +85,7 @@ public class Drive extends OpMode {
         leftRear.setPower(backLeftPower);
         rightFront.setPower(frontRightPower);
         rightRear.setPower(backRightPower);
-        //telemetry.addData("encoder",leftFront.getCurrentPosition());
-        //leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        //telemetry.update();
+       // FOR PRECISION DRIVING
         if (gamepad1.left_bumper) {
             leftFront.setPower(0.3 * frontLeftPower);
             leftRear.setPower(0.3 * backLeftPower);
@@ -115,9 +93,8 @@ public class Drive extends OpMode {
             rightRear.setPower(0.3 * backRightPower);
         }
 
-        //lift.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
-        //armLift.setPower(gamepad2.right_trigger - gamepad2.left_trigger);
 
+        // BUTTON TO MAKE LIFT NOT GO TOO FAR DOWN AND WIND STRING ALL CRAZY
         if (touch.getState()==true) {
             telemetry.addData("touch","is not pressed");
             lift.setPower(lift_power);
@@ -135,45 +112,13 @@ public class Drive extends OpMode {
         
         //--------claw--------\\
         if (gamepad2.b) {
-            claw.setPosition(0);
+            claw.setPosition(.5);// think claw 1 and 2 need to be inverted
+            claw2.setPosition(1);
         } if (gamepad2.y) {
             claw.setPosition(1); //the larger the number, the more it closes | for claw (0.285).
-        }
-        //--------claw2--------\\
-        if (gamepad2.b) {
-            claw2.setPosition(0);
-        } if (gamepad2.y) {
-            claw2.setPosition(1);
+            claw2.setPosition(.5);
         }
 
-        /*
-        if (gamepad1.a) { //tall
-            move(3700);
-        }
-        if (gamepad1.b) { //medium
-            move(2775);
-        }
-        if (gamepad1.y) { //small
-            move(1850);
-        }
-        if (gamepad1.x) { //ground
-            move(500);
-        }
-        if (gamepad1.right_bumper) { //bottom
-            move(0);
-        }
-        telemetry.addData("LiftEncoder", lift.getCurrentPosition());
-*/
     }
-    /*private void move(float a){
-        lift.setTargetPosition(Math.round(a));
-        lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        lift.setPower(0.7);
-    }*/
 
-    /* Code to run ONCE after the driver hits STOP
-
-    @Override
-    public void stop() {
-    } */
 }

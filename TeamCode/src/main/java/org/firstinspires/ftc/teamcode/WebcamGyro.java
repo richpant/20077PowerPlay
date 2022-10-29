@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 FIRST. All rights reserved.
+/* Copyright (c) 2019 FIRST. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted (subject to the limitations in the disclaimer below) provided that
@@ -30,82 +30,50 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+
+import java.util.List;
 
 /**
- *  This file illustrates the concept of driving an autonomous path based on Gyro heading and encoder counts.
- *  The code is structured as a LinearOpMode
+ * This 2022-2023 OpMode illustrates the basics of using the TensorFlow Object Detection API to
+ * determine which image is being presented to the robot.
  *
- *  The path to be followed by the robot is built from a series of drive, turn or pause steps.
- *  Each step on the path is defined by a single function call, and these can be strung together in any order.
+ * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
+ * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list.
  *
- *  The code REQUIRES that you have encoders on the drive motors, otherwise you should use: RobotAutoDriveByTime;
- *
- *  This code ALSO requires that you have a BOSCH BNO055 IMU, otherwise you would use: RobotAutoDriveByEncoder;
- *  This IMU is found in REV Control/Expansion Hubs shipped prior to July 2022, and possibly also on later models.
- *  To run as written, the Control/Expansion hub should be mounted horizontally on a flat part of the robot chassis.
- *
- *  This sample requires that the drive Motors have been configured with names : left_drive and right_drive.
- *  It also requires that a positive power command moves both motors forward, and causes the encoders to count UP.
- *  So please verify that both of your motors move the robot forward on the first move.  If not, make the required correction.
- *  See the beginning of runOpMode() to set the FORWARD/REVERSE option for each motor.
- *
- *  This code uses RUN_TO_POSITION mode for driving straight, and RUN_USING_ENCODER mode for turning and holding.
- *  Note: You must call setTargetPosition() at least once before switching to RUN_TO_POSITION mode.
- *
- *  Notes:
- *
- *  All angles are referenced to the coordinate-frame that is set whenever resetHeading() is called.
- *  In this sample, the heading is reset when the Start button is touched on the Driver station.
- *  Note: It would be possible to reset the heading after each move, but this would accumulate steering errors.
- *
- *  The angle of movement/rotation is assumed to be a standardized rotation around the robot Z axis,
- *  which means that a Positive rotation is Counter Clockwise, looking down on the field.
- *  This is consistent with the FTC field coordinate conventions set out in the document:
- *  ftc_app\doc\tutorial\FTC_FieldCoordinateSystemDefinition.pdf
- *
- *  Control Approach.
- *
- *  To reach, or maintain a required heading, this code implements a basic Proportional Controller where:
- *
- *      Steering power = Heading Error * Proportional Gain.
- *
- *      "Heading Error" is calculated by taking the difference between the desired heading and the actual heading,
- *      and then "normalizing" it by converting it to a value in the +/- 180 degree range.
- *
- *      "Proportional Gain" is a constant that YOU choose to set the "strength" of the steering response.
- *
- *  Use Android Studio to Copy this Class, and Paste it into your "TeamCode" folder with a new name.
- *  Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
+ * IMPORTANT: In order to use this OpMode, you need to obtain your own Vuforia license key as
+ * is explained below.
  */
+@TeleOp(name = "WebcamGyro")
 
-@Autonomous(name="AutoWithGyro", group="Robot")
-public class AutoWithGyro extends LinearOpMode {
-
-    /* Declare OpMode members. */
-    private DcMotor         leftFront   = null;
-    private DcMotor         rightRear  = null;
-    private DcMotor         rightFront = null;
-    private DcMotor         leftRear = null;
-
-    private BNO055IMU       imu         = null;      // Control/Expansion Hub IMU
+public class WebcamGyro extends LinearOpMode {
+    private DcMotor rightFront;
+    private DcMotor rightRear;
+    private DcMotor leftFront;
+    private DcMotor leftRear;
+    private DcMotor arm;
+    private Servo claw;
+    private Servo claw2;
+    private BNO055IMU imu         = null;      // Control/Expansion Hub IMU
     private DcMotor lift;   // 0
-    private Servo claw;         // s4
-    private Servo claw2;         // s5
+
     private DigitalChannel touch;
     private double          robotHeading  = 0;
     private double          headingOffset = 0;
@@ -131,48 +99,73 @@ public class AutoWithGyro extends LinearOpMode {
     static final double     DRIVE_GEAR_REDUCTION    = 1.0 ;     // No External Gearing.
     static final double     WHEEL_DIAMETER_INCHES   = 4.0 ;     // For figuring circumference
     static final double     COUNTS_PER_INCH         = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
-                                                      (WHEEL_DIAMETER_INCHES * 3.1415);
+            (WHEEL_DIAMETER_INCHES * 3.1415);
 
     // These constants define the desired driving/control characteristics
     // They can/should be tweaked to suit the specific robot drive train.
     static final double     DRIVE_SPEED             = 0.4;     // Max driving speed for better distance accuracy.
     static final double     TURN_SPEED              = 0.2;     // Max Turn speed to limit turn rate
     static final double     HEADING_THRESHOLD       = 1.0 ;    // How close must the heading get to the target before moving to next step.
-                                                               // Requiring more accuracy (a smaller number) will often make the turn take longer to get into the final position.
+    // Requiring more accuracy (a smaller number) will often make the turn take longer to get into the final position.
     // Define the Proportional control coefficient (or GAIN) for "heading control".
     // We define one value when Turning (larger errors), and the other is used when Driving straight (smaller errors).
     // Increase these numbers if the heading does not corrects strongly enough (eg: a heavy robot or using tracks)
     // Decrease these numbers if the heading does not settle on the correct value (eg: very agile robot with omni wheels)
     static final double     P_TURN_GAIN            = 0.02;     // Larger is more responsive, but also less stable
-    static final double     P_DRIVE_GAIN           = 0.03;     // Larger is more responsive, but also less stable
+    static final double     P_DRIVE_GAIN           = 0.03;     // Larger is more responsive, but also l
+   /*
+     * Specify the source for the Tensor Flow Model.
+     * If the TensorFlowLite object model is included in the Robot Controller App as an "asset",
+     * the OpMode must to load it using loadModelFromAsset().  However, if a team generated model
+     * has been downloaded to the Robot Controller's SD FLASH memory, it must to be loaded using loadModelFromFile()
+     * Here we assume it's an Asset.    Also see method initTfod() below .
+     */
+    private static final String TFOD_MODEL_ASSET = "PowerPlay.tflite";
+    // private static final String TFOD_MODEL_FILE  = "/sdcard/FIRST/tflitemodels/CustomTeamModel.tflite";
 
+
+    private static final String[] LABELS = {
+            "1 Bolt",
+            "2 Bulb",
+            "3 Panel"
+    };
+
+    /*
+     * IMPORTANT: You need to obtain your own license key to use Vuforia. The string below with which
+     * 'parameters.vuforiaLicenseKey' is initialized is for illustration only, and will not function.
+     * A Vuforia 'Development' license key, can be obtained free of charge from the Vuforia developer
+     * web site at https://developer.vuforia.com/license-manager.
+     *
+     * Vuforia license keys are always 380 characters long, and look as if they contain mostly
+     * random data. As an example, here is a example of a fragment of a valid key:
+     *      ... yIgIzTqZ4mWjk9wd3cZO9T1axEqzuhxoGlfOOI2dRzKS4T0hQ8kT ...
+     * Once you've obtained a license key, copy the string from the Vuforia web site
+     * and paste it in to your code on the next line, between the double quotes.
+     */
+    private static final String VUFORIA_KEY =
+            "ATZ2+2H/////AAABmUF68Oc56EwYrSTKYk9XtRaIhO6cdNIpwubhqKwiAvRJ440uCFpOfHLptONMzPRinvi+vxPWmzqAl4cGEpfi5irMQduEmy3JJHRqIMaMqDLkK8hzPqkoiL8+VOLv+e26RN1Bcgu8k0WD0ydq2N9KlDCgO9OLcZw4jf7P2a2EJ0o5a+6B3t0ArOLaNvPeHW+qVBPn8Ya24O8suSJwIuzZMZrbnYS1zZfaqZwxW6FUhWZzEwWq91RBHfdlISisZ97ynB+rDW01a1yAOTTcP5E5vgrvFn+Mvc2YcPHDhjWCClIYhNw8es3JbbkGJY5YQ4vGPuQJiCTs+FdM/30pThK+ZOcTiWt9D/YE8O9X3e9mcwmp";
+
+    /**
+     * {@link #vuforia} is the variable we will use to store our instance of the Vuforia
+     * localization engine.
+     */
+    private VuforiaLocalizer vuforia;
+
+    /**
+     * {@link #tfod} is the variable we will use to store our instance of the TensorFlow Object
+     * Detection engine.
+     */
+    private TFObjectDetector tfod;
 
     @Override
     public void runOpMode() {
-
-        // Initialize the drive system variables.
         leftFront = hardwareMap.get(DcMotor.class, "leftFront");
-        rightFront = hardwareMap.get(DcMotor.class, "rightFront");
         leftRear = hardwareMap.get(DcMotor.class, "leftRear");
+        rightFront = hardwareMap.get(DcMotor.class, "rightFront");
         rightRear = hardwareMap.get(DcMotor.class, "rightRear");
-        lift = hardwareMap.get(DcMotorEx.class, "lift");
-        claw = hardwareMap.get(Servo.class, "claw");
-        claw2 = hardwareMap.get(Servo.class, "claw2");
-        touch = hardwareMap.get(DigitalChannel.class,"touch");
-        touch.setMode(DigitalChannel.Mode.INPUT);
-        // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
-        // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        leftRear.setDirection(DcMotor.Direction.REVERSE);
-        leftFront.setDirection(DcMotor.Direction.REVERSE);
 
-        // define initialization values for IMU, and then initialize it.
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit            = BNO055IMU.AngleUnit.DEGREES;
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        imu.initialize(parameters);
-
-        // Ensure the robot is stationary.  Reset the encoders and set the motors to BRAKE mode
+        rightFront.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightRear.setDirection(DcMotorSimple.Direction.REVERSE);
         leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -185,64 +178,132 @@ public class AutoWithGyro extends LinearOpMode {
         leftRear.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        // Wait for the game to start (Display Gyro value while waiting)
-        while (opModeInInit()) {
-            telemetry.addData(">", "Robot Heading = %4.0f", getRawHeading());
-            telemetry.update();
+        // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that
+        // first.
+        initVuforia();
+        initTfod();
+
+        /**
+         * Activate TensorFlow Object Detection before we wait for the start command.
+         * Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
+         **/
+        if (tfod != null) {
+            tfod.activate();
+
+            // The TensorFlow software will scale the input images from the camera to a lower resolution.
+            // This can result in lower detection accuracy at longer distances (> 55cm or 22").
+            // If your target is at distance greater than 50 cm (20") you can increase the magnification value
+            // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
+            // should be set to the value of the images used to create the TensorFlow Object Detection model
+            // (typically 16/9).
+            tfod.setZoom(1.0, 16.0/9.0);
         }
 
-        // Set the encoders for closed loop speed control, and reset the heading.
-        leftFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        leftRear.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightRear.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        resetHeading();
-
-        // Step through each leg of the path,
-        // Notes:   Reverse movement is obtained by setting a negative distance (not speed)
-        //          holdHeading() is used after turns to let the heading stabilize
-        //          Add a sleep(2000) after any step to keep the telemetry data visible for review
-
-        driveStraight(DRIVE_SPEED, 24.0, 0.0);    // Drive Forward 24"
-        turnToHeading( TURN_SPEED, -90.0);               // Turn  CW to -45 Degrees
-        holdHeading( TURN_SPEED, -90.0, 0.5);   // Hold -45 Deg heading for a 1/2 second
-
-        driveStraight(DRIVE_SPEED, 17.0, -90.0);  // Drive Forward 17" at -45 degrees (12"x and 12"y)
-        turnToHeading( TURN_SPEED,  0.0);               // Turn  CCW  to  45 Degrees
-        holdHeading( TURN_SPEED,  0.0, 0.5);    // Hold  45 Deg heading for a 1/2 second
-
-        driveStraight(DRIVE_SPEED, 17.0, 0.0);  // Drive Forward 17" at 45 degrees (-12"x and 12"y)
-        turnToHeading( TURN_SPEED,   -90.0);               // Turn  CW  to 0 Degrees
-        holdHeading( TURN_SPEED,   -90.0, 0.5);    // Hold  0 Deg heading for 1 second
-
-        driveStraight(DRIVE_SPEED,24.0, -90.0);    // Drive in Reverse 48" (should return to approx. staring position)
-
-        telemetry.addData("Path", "Complete");
+        /** Wait for the game to begin */
+        telemetry.addData(">", "Press Play to start op mode");
         telemetry.update();
-        sleep(1000);  // Pause to display last telemetry message.
+        waitForStart();
+            double turn = 0.0;
+            int forward =0;
+        if (opModeIsActive()) {
+            while (opModeIsActive()) {
+                if (tfod != null) {
+                    // getUpdatedRecognitions() will return null if no new information is available since
+                    // the last time that call was made.
+                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                    if (updatedRecognitions != null) {
+                        telemetry.addData("# Objects Detected", updatedRecognitions.size());
+
+                        // step through the list of recognitions and display image position/size information for each one
+                        // Note: "Image number" refers to the randomized image orientation/number
+                        int i = 0; //added
+                        boolean isBoltDetected = false; //added
+                        boolean isBulbDetectecd = false; //added
+                        boolean isPanelDetected = false; //added
+                        for (Recognition recognition : updatedRecognitions) {
+                            double col = (recognition.getLeft() + recognition.getRight()) / 2 ;
+                            double row = (recognition.getTop()  + recognition.getBottom()) / 2 ;
+                            double width  = Math.abs(recognition.getRight() - recognition.getLeft()) ;
+                            double height = Math.abs(recognition.getTop()  - recognition.getBottom()) ;
+
+                            telemetry.addData(""," ");
+                            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100 );
+                            telemetry.addData("- Position (Row/Col)","%.0f / %.0f", row, col);
+                            telemetry.addData("- Size (Width/Height)","%.0f / %.0f", width, height);
+                            i++; //added
+                            //check label to see if camera sees bolt, this whole if statement added
+                            if (recognition.getLabel().equals("1 Bolt")){
+                                isBoltDetected =true;
+                                turn = 100;
+                                forward = 100;
+                                telemetry.addData("Side Detected", "Bolt");
+                            }else{
+                                isBoltDetected = false; //added
+                            }
+                            if (recognition.getLabel().equals("2 Bulb")){
+                                isBulbDetectecd =true;
+                                turn = 0;
+                                forward = 0;
+
+                                telemetry.addData("Side Detected", "Bulb");
+                            }else{
+                                isBulbDetectecd = false; //added
+                            }
+                            if (recognition.getLabel().equals("3 Panel")){
+                                isPanelDetected =true;
+                                turn = -100;
+                                forward = 100;
+                                telemetry.addData("Side Detected", "Panel");
+                            }else{
+                                isPanelDetected = false; //added
+                            }
+
+                        }
+                        telemetry.update();
+                    }
+                }
+                driveStraight(driveSpeed,24,0.0);
+                //move(1000,1000,1000,1000);//move into zone 2
+               // move(turn,turn,-turn,-turn);//turn to zone 1 or 3 or no turn
+               // move(forward,forward,forward,forward);//move forward into the correct zone
+            }
+        }
     }
 
-    /*
-     * ====================================================================================================
-     * Driving "Helper" functions are below this line.
-     * These provide the high and low level methods that handle driving straight and turning.
-     * ====================================================================================================
+    /**
+     * Initialize the Vuforia localization engine.
      */
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
-    // **********  HIGH Level driving functions.  ********************
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+    }
 
     /**
-    *  Method to drive in a straight line, on a fixed compass heading (angle), based on encoder counts.
-    *  Move will stop if either of these conditions occur:
-    *  1) Move gets to the desired position
-    *  2) Driver stops the opmode running.
-    *
-    * @param maxDriveSpeed MAX Speed for forward/rev motion (range 0 to +1.0) .
-    * @param distance   Distance (in inches) to move from current position.  Negative distance means move backward.
-    * @param heading      Absolute Heading Angle (in Degrees) relative to last gyro reset.
-    *                   0 = fwd. +ve is CCW from fwd. -ve is CW from forward.
-    *                   If a relative angle is required, add/subtract from the current robotHeading.
-    */
+     * Initialize the TensorFlow Object Detection engine.
+     */
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+            "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.75f;
+        tfodParameters.isModelTensorFlow2 = true;
+        tfodParameters.inputSize = 300;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+
+        // Use loadModelFromAsset() if the TF Model is built in as an asset by Android Studio
+        // Use loadModelFromFile() if you have downloaded a custom team model to the Robot Controller's FLASH.
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS);
+        // tfod.loadModelFromFile(TFOD_MODEL_FILE, LABELS);
+    }
+
     public void driveStraight(double maxDriveSpeed,
                               double distance,
                               double heading) {
@@ -273,7 +334,7 @@ public class AutoWithGyro extends LinearOpMode {
 
             // keep looping while we are still active, and BOTH motors are running.
             while (opModeIsActive() &&
-                   (leftFront.isBusy() && rightFront.isBusy())) {
+                    (leftFront.isBusy() && rightFront.isBusy())) {
 
                 // Determine required steering to keep on heading
                 turnSpeed = getSteeringCorrection(heading, P_DRIVE_GAIN);
@@ -297,18 +358,6 @@ public class AutoWithGyro extends LinearOpMode {
             rightRear.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
     }
-
-    /**
-     *  Method to spin on central axis to point in a new direction.
-     *  Move will stop if either of these conditions occur:
-     *  1) Move gets to the heading (angle)
-     *  2) Driver stops the opmode running.
-     *
-     * @param maxTurnSpeed Desired MAX speed of turn. (range 0 to +1.0)
-     * @param heading Absolute Heading Angle (in Degrees) relative to last gyro reset.
-     *              0 = fwd. +ve is CCW from fwd. -ve is CW from forward.
-     *              If a relative angle is required, add/subtract from current heading.
-     */
     public void turnToHeading(double maxTurnSpeed, double heading) {
 
         // Run getSteeringCorrection() once to pre-calculate the current error
@@ -334,17 +383,6 @@ public class AutoWithGyro extends LinearOpMode {
         moveRobot(0, 0);
     }
 
-    /**
-     *  Method to obtain & hold a heading for a finite amount of time
-     *  Move will stop once the requested time has elapsed
-     *  This function is useful for giving the robot a moment to stabilize it's heading between movements.
-     *
-     * @param maxTurnSpeed      Maximum differential turn speed (range 0 to +1.0)
-     * @param heading    Absolute Heading Angle (in Degrees) relative to last gyro reset.
-     *                   0 = fwd. +ve is CCW from fwd. -ve is CW from forward.
-     *                   If a relative angle is required, add/subtract from current heading.
-     * @param holdTime   Length of time (in seconds) to hold the specified heading.
-     */
     public void holdHeading(double maxTurnSpeed, double heading, double holdTime) {
 
         ElapsedTime holdTimer = new ElapsedTime();
@@ -368,16 +406,6 @@ public class AutoWithGyro extends LinearOpMode {
         // Stop all motion;
         moveRobot(0, 0);
     }
-
-    // **********  LOW Level driving functions.  ********************
-
-    /**
-     * This method uses a Proportional Controller to determine how much steering correction is required.
-     *
-     * @param desiredHeading        The desired absolute heading (relative to last heading reset)
-     * @param proportionalGain      Gain factor applied to heading error to obtain turning power.
-     * @return                      Turning power needed to get to required heading.
-     */
     public double getSteeringCorrection(double desiredHeading, double proportionalGain) {
         targetHeading = desiredHeading;  // Save for telemetry
 
@@ -394,13 +422,6 @@ public class AutoWithGyro extends LinearOpMode {
         // Multiply the error by the gain to determine the required steering correction/  Limit the result to +/- 1.0
         return Range.clip(headingError * proportionalGain, -1, 1);
     }
-
-    /**
-     * This method takes separate drive (fwd/rev) and turn (right/left) requests,
-     * combines them, and applies the appropriate speed commands to the left and right wheel motors.
-     * @param drive forward motor speed
-     * @param turn  clockwise turning motor speed.
-     */
     public void moveRobot(double drive, double turn) {
         driveSpeed = drive;     // save this value as a class member so it can be used by telemetry.
         turnSpeed  = turn;      // save this value as a class member so it can be used by telemetry.
@@ -421,12 +442,6 @@ public class AutoWithGyro extends LinearOpMode {
         leftRear.setPower(leftSpeed);
         rightRear.setPower(rightSpeed);
     }
-
-    /**
-     *  Display the various control parameters while driving
-     *
-     * @param straight  Set to true if we are driving straight, and the encoder positions should be included in the telemetry.
-     */
     private void sendTelemetry(boolean straight) {
 
         if (straight) {
@@ -443,7 +458,6 @@ public class AutoWithGyro extends LinearOpMode {
         telemetry.addData("Wheel Speeds L:R.", "%5.2f : %5.2f", leftSpeed, rightSpeed);
         telemetry.update();
     }
-
     /**
      * read the raw (un-offset Gyro heading) directly from the IMU
      */
@@ -451,10 +465,6 @@ public class AutoWithGyro extends LinearOpMode {
         Orientation angles   = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
         return angles.firstAngle;
     }
-
-    /**
-     * Reset the "offset" heading back to zero
-     */
     public void resetHeading() {
         // Save a new heading offset equal to the current raw heading.
         headingOffset = getRawHeading();
@@ -466,6 +476,6 @@ public class AutoWithGyro extends LinearOpMode {
         lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         lift.setPower(0.5);
 
-        }
     }
 
+    }
