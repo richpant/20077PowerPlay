@@ -72,7 +72,7 @@ public class straferightauoto extends LinearOpMode {
     double close = 0.5;
 
 
-    private static final String TFOD_MODEL_ASSET = "energize123.tflite";
+    private static final String TFOD_MODEL_ASSET = "newCone.tflite";
 
 
     //private static final String TFOD_MODEL_FILE  = "/sdcard/FIRST/tflitemodels/CustomTeamModel.tflite";
@@ -165,7 +165,7 @@ public class straferightauoto extends LinearOpMode {
             // to artificially zoom in to the center of image.  For best results, the "aspectRatio" argument
             // should be set to the value of the images used to create the TensorFlow Object Detection model
             // (typically 16/9).
-            tfod.setZoom(2.5, 16.0 / 9.0);
+            tfod.setZoom(1.5, 16.0 / 9.0);
         }
 
         /** Wait for the game to begin */
@@ -187,9 +187,9 @@ public class straferightauoto extends LinearOpMode {
                         // step through the list of recognitions and display image position/size information for each one
                         // Note: "Image number" refers to the randomized image orientation/number
                         int i = 0; //added
-                        boolean isBoltDetected = false; //added
-                        boolean isBulbDetectecd = false; //added
-                        boolean isPanelDetected = false; //added
+                        boolean isOneDetected = false; //added
+                        boolean isTwoDetected = false; //added
+                        boolean isThreeDetected = false; //added
                         for (Recognition recognition : updatedRecognitions) {
                             double col = (recognition.getLeft() + recognition.getRight()) / 2;
                             double row = (recognition.getTop() + recognition.getBottom()) / 2;
@@ -203,30 +203,30 @@ public class straferightauoto extends LinearOpMode {
                             i++; //added
                             //check label to see if camera sees bolt, this whole if statement added
                             if (recognition.getLabel().equals("sideOne")) {
-                                isBoltDetected = true;
+                                isOneDetected = true;
 
                                 zone = 700;
-                                forward = 1200;
+                                forward = -1000;
                                 telemetry.addData("Side Detected", "Side One");
                             } else {
-                                isBoltDetected = false; //added
+                                isOneDetected = false; //added
                             }
                             if (recognition.getLabel().equals("sideTwo")) {
-                                isBulbDetectecd = true;
+                                isTwoDetected = true;
                                 forward = 0;
                                 zone = 2;
 
                                 telemetry.addData("Side Detected", "Side Two");
                             } else {
-                                isBulbDetectecd = false; //added
+                                isTwoDetected = false; //added
                             }
                             if (recognition.getLabel().equals("sideThree")) {
-                                isPanelDetected = true;
-                                forward = -1200;
+                                isThreeDetected = true;
+                                forward = 1000;
                                 zone = -700;
                                 telemetry.addData("Side Detected", "side Three");
                             } else {
-                                isPanelDetected = false; //added
+                                isThreeDetected = false; //added
                             }
 
                         }
@@ -236,38 +236,71 @@ public class straferightauoto extends LinearOpMode {
                 claws(close);
                 sleep(500);
                 liftup(500);
-                move(3300, -3300, -3300, 3300);
-                liftup(3700);
+                //move(3400, -3400, -3400, 3400);
+                //liftup(3700);
+                movePlusLiftUp(3350, -3350, -3350, 3350, 3700);
                 move(175, 175, 175, 175);
 
                 sleep(500);
                 claws(open);
-                sleep(500);
-                move(-175, -175, -175, -175);
-                sleep(200);
+                sleep(999);
                 claws(close);
+                move(-175, -175, -175, -175);
                 liftDown(-3450);
+                //movePlusLiftDown(-175, -175, -175, -175, 0);//-3450
                 claws(open);
-                move(-650, 650, 650, -650);
+                move(-800, 800, 800, -800);
 
-                move(1725, 1725, -1725, -1725);//turn to stack
+                turn(1700, 1700, -1700, -1700);//turn to stack
                 move(1300, 1300, 1300, 1300);
                 claws(close);
                 sleep(500);
                 liftup(550);
-                move(-1200, -1200, -1200, -1200);
-                move(-1225, -1225, 1225, 1225);
-                liftup(2900);
+                move(-1150, -1150, -1150, -1150);
+
+                turn(-1225, -1225, 1225, 1225);
+                liftup(3000);//2900
                 move(425, 425, 425, 425);
+                //movePlusLiftUp(425, 425, 425, 425, 3700);
                 sleep(500);
                 claws(open);
-                sleep(500);
-                move(-300, -300, -300, -300);
-                sleep(200);
+                sleep(999);
                 claws(close);
-                liftDown(-3400);
+                sleep(200);
+                move(-300, -300, -300, -300);
+                liftDown(-3550);
+                //movePlusLiftDown(-300, -300, -300, -300, 3550);
+
                 claws(open);
-                move(-450, -450, 450, 450);
+                turn(1300, 1300, -1300, -1300);//turn to stack
+                move(forward,forward,forward,forward);// move to 1, 2, or 3 got the number for
+               /* move(1300, 1300, 1300, 1300);
+                claws(close);
+                sleep(500);
+                liftup(550);
+                move(-1150, -1150, -1150, -1150);
+                turn(-1225, -1225, 1225, 1225);
+                liftup(3000);//2900
+                move(425, 425, 425, 425);
+                //movePlusLiftUp(425, 425, 425, 425, 3700);
+                sleep(500);
+                claws(open);
+                sleep(999);
+                claws(close);
+                sleep(200);
+                move(-300, -300, -300, -300);
+                liftDown(-3550);
+                //movePlusLiftDown(-300, -300, -300, -300, 3550);*/
+
+                /*liftDown(-3000);
+                move(1350, 1350, 1350, 1350);
+                claws(close);
+                sleep(200);
+                movePlusLiftUp(-1350, -1350, -1350, -1350, 3000);
+                turn(-1300, -1300, 1300, 1300);
+                move(-300, -300, -300, -300);
+                move(-1300, -1300, 1300, 1300);
+                */
 
 
                 sleep(90000);
@@ -299,7 +332,7 @@ public class straferightauoto extends LinearOpMode {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        tfodParameters.minResultConfidence = 0.45f;
+        tfodParameters.minResultConfidence = 0.60f;
         tfodParameters.isModelTensorFlow2 = true;
         tfodParameters.inputSize = 300;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
@@ -316,7 +349,7 @@ public class straferightauoto extends LinearOpMode {
         claw2.setPosition(q);
     }
 
-    public void move(int lf, int lb, int rf, int rb) {
+    public void turn(int lf, int lb, int rf, int rb) {
         rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -353,7 +386,43 @@ public class straferightauoto extends LinearOpMode {
         leftRear.setPower(0);
     }
 
-    //===============================lift====================
+    public void move(int lf, int lb, int rf, int rb) {
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        rightFront.setTargetPosition(rf);
+        rightRear.setTargetPosition(rb);
+        leftFront.setTargetPosition(lf);
+        leftRear.setTargetPosition(lb);
+
+        rightFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        rightRear.setPower(0.7);
+        rightFront.setPower(0.7);
+
+        leftFront.setPower(0.7);
+        leftRear.setPower(0.7);
+
+        while (leftFront.isBusy() && leftRear.isBusy() && rightFront.isBusy() && rightRear.isBusy()) {
+            sleep(25);
+
+        }
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        rightRear.setPower(0);
+        leftFront.setPower(0);
+        rightFront.setPower(0);
+        leftRear.setPower(0);
+    }
+
     //----------------------Lift------------
     public void liftup(int encod) {
         //lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -388,14 +457,90 @@ public class straferightauoto extends LinearOpMode {
 
     }
 
-        /* lift.setPower(-0.5);
+    public void movePlusLiftUp(int lf, int lb, int rf, int rb, int up) {
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        if (touch.getState() == false) {
-            lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            lift.setPower(0);
-            resetRuntime();
-            while (getRuntime() < 5 && touch.getState() == false) {
-                lift.setPower(1);
-            }
-        }*/
+        rightFront.setTargetPosition(rf);
+        rightRear.setTargetPosition(rb);
+        leftFront.setTargetPosition(lf);
+        leftRear.setTargetPosition(lb);
+        lift.setTargetPosition(up);
+
+        rightFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        lift.setPower(1);
+        rightRear.setPower(0.7);
+        rightFront.setPower(0.7);
+
+        leftFront.setPower(0.7);
+        leftRear.setPower(0.7);
+
+        while (leftFront.isBusy() && leftRear.isBusy() && rightFront.isBusy() && rightRear.isBusy() && lift.isBusy()) {// && lift.isBusy()
+            sleep(25);
+        }
+
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        rightRear.setPower(0);
+        leftFront.setPower(0);
+        rightFront.setPower(0);
+        leftRear.setPower(0);
+        lift.setPower(0);
     }
+
+    public void movePlusLiftDown(int lf, int lb, int rf, int rb, int down) {
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        rightFront.setTargetPosition(rf);
+        rightRear.setTargetPosition(rb);
+        leftFront.setTargetPosition(lf);
+        leftRear.setTargetPosition(lb);
+        lift.setTargetPosition(down);
+
+        rightFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftFront.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        rightRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        leftRear.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        lift.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        lift.setPower(-1);
+        rightRear.setPower(0.7);
+        rightFront.setPower(0.7);
+
+        leftFront.setPower(0.7);
+        leftRear.setPower(0.7);
+
+        while (leftFront.isBusy() && leftRear.isBusy() && rightFront.isBusy() && rightRear.isBusy() && lift.isBusy()) {// && lift.isBusy()
+            sleep(25);
+        }
+
+        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        rightRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        leftRear.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        rightRear.setPower(0);
+        leftFront.setPower(0);
+        rightFront.setPower(0);
+        leftRear.setPower(0);
+        lift.setPower(0);
+    }
+
+}
